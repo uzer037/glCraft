@@ -118,6 +118,7 @@ public:
     void keyReleaseEvent(QKeyEvent *e);
 
     QVector <bool> keyArr;
+    QVector <bool> spKeyArr;
 
     QVector2D mousePos;
 

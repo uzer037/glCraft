@@ -8,9 +8,13 @@ Widget::Widget(QWidget *parent) // конструктор
     this->resize(xsz,ysz);// задаем размеры окна
     resizeGL(xsz,ysz);
     glViewport(0,0,xsz,ysz);
-    for(int i = 0; i < 256; i++)
+    for(int i = 0; i < 300; i++)
     {
         keyArr.push_back(0);
+    }
+    for(int i = 0; i < 50; i++)
+    {
+        spKeyArr.push_back(0);
     }
 }
 
@@ -114,11 +118,70 @@ void Widget::mouseCorrect()
 
 void Widget::keyPressEvent(QKeyEvent *e)
 {
-    keyArr[e->key()] = 1;
+    if(e->key() < 300 && e->key() > 0)
+        keyArr[e->key()] = 1;
+    else {
+        switch(e->key())
+        {
+            case Qt::Key::Key_Control :
+            {
+                spKeyArr[0] = 1;
+                break;
+            }
+
+            case Qt::Key::Key_Alt :
+            {
+                spKeyArr[1] = 1;
+                break;
+            }
+
+            case Qt::Key::Key_AltGr :
+            {
+                spKeyArr[2] = 1;
+                break;
+            }
+
+            case Qt::Key::Key_Shift :
+            {
+                spKeyArr[3] = 1;
+                break;
+            }
+        }
+    }
 }
 void Widget::keyReleaseEvent(QKeyEvent *e)
 {
-    keyArr[e->key()] = 0;
+    if(e->key() < 300 && e->key() > 0)
+        keyArr[e->key()] = 0;
+    else
+    {
+        switch(e->key())
+        {
+            case Qt::Key::Key_Control :
+            {
+                spKeyArr[0] = 0;
+                break;
+            }
+
+            case Qt::Key::Key_Alt :
+            {
+                spKeyArr[1] = 0;
+                break;
+            }
+
+            case Qt::Key::Key_AltGr :
+            {
+                spKeyArr[2] = 0;
+                break;
+            }
+
+            case Qt::Key::Key_Shift :
+            {
+                spKeyArr[3] = 0;
+                break;
+            }
+        }
+    }
 }
 
 void Widget::printFPS()
@@ -208,7 +271,7 @@ void Widget::initView(QVector3D pos, QVector3D rot)
     viewMatrix.rotate(rot.x(), 1, 0, 0);
     viewMatrix.rotate(rot.y(), 0, 1, 0);
     viewMatrix.rotate(rot.z(), 0, 0, 1);
-    QVector3D newPos(pos.x(), pos.y(), pos.z());
+    QVector3D newPos(pos.x(), -pos.y(), pos.z());
     viewMatrix.translate(newPos);
 
 }
@@ -245,25 +308,48 @@ void Widget::drawCube(QVector3D pos)
 
 void Widget::mainLoop()
 {
+    // //
+    // special keys array (spKeyArr):
+    // 0 = ctrl
+    // 1 = alt
+    // 2 = altGr
+    // 3 = shift
+    // 4 = enter
+    // 5 = tab
+    // 6 = backspace
+    // //
+
     if(keyArr[Qt::Key::Key_A])
     {
-        cam->pos += cam->speed.x() * cam->rot/360;
+        cam->pos.setX(cam->pos.x() + cam->speed.x() * cos(cam->rot.y()/180*M_PI));
+        cam->pos.setZ(cam->pos.z() + cam->speed.z() * sin(cam->rot.y()/180*M_PI));
     }
     if(keyArr[Qt::Key::Key_D])
     {
-        cam->pos -= cam->speed.x() * cam->rot/360;
+        cam->pos.setX(cam->pos.x() - cam->speed.x() * cos(cam->rot.y()/180*M_PI));
+        cam->pos.setZ(cam->pos.z() - cam->speed.z() * sin(cam->rot.y()/180*M_PI));
     }
 
     if(keyArr[Qt::Key::Key_W])
     {
-        cam->zShift(cam->speed.z());
+        cam->pos.setX(cam->pos.x() - cam->speed.x() * sin(cam->rot.y()/180*M_PI));
+        cam->pos.setZ(cam->pos.z() + cam->speed.z() * cos(cam->rot.y()/180*M_PI));
     }
     if(keyArr[Qt::Key::Key_S])
     {
-        cam->zShift(-cam->speed.z());
+        cam->pos.setX(cam->pos.x() + cam->speed.x() * sin(cam->rot.y()/180*M_PI));
+        cam->pos.setZ(cam->pos.z() - cam->speed.z() * cos(cam->rot.y()/180*M_PI));
+    }
+    if(keyArr[Qt::Key::Key_Space])
+    {
+        cam->pos.setY(cam->pos.y()+cam->speed.y());
+    }
+    if(spKeyArr[0])
+    {
+        cam->pos.setY(cam->pos.y()-cam->speed.y());
     }
 
     camUpdate();
-    qDebug() << "a";
+    //qDebug() << cam->rot;
     frames++; // for FPS counter
 }
