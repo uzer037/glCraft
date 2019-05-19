@@ -4,7 +4,7 @@
 Widget::Widget(QWidget *parent) // конструктор
     : QGLWidget(parent), texture(nullptr), indexBuff(QOpenGLBuffer::IndexBuffer)
 {
-    int xsz = 600, ysz = 600;
+    int xsz = 800, ysz = 800;
     this->resize(xsz,ysz);// задаем размеры окна
     resizeGL(xsz,ysz);
     glViewport(0,0,xsz,ysz);
@@ -41,7 +41,7 @@ void Widget::initializeGL()
     fpsTick->start();
 
     mainTick = new QTimer();
-    mainTick->setInterval(20);
+    mainTick->setInterval(10);
     connect(this->mainTick, SIGNAL(timeout()), this, SLOT(mainLoop()) );
     mainTick->start();
 }
@@ -61,6 +61,7 @@ void Widget::paintGL() // рисование
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очистка экрана
     drawCube(QVector3D(0,0,0));
     drawCube(QVector3D(1,0,0));
+    glFinish();
     swapBuffers();
 }
 
@@ -86,14 +87,14 @@ void Widget::mouseReleaseEvent(QMouseEvent *e)
 void Widget::mouseMoveEvent(QMouseEvent *e)
 {
     QVector2D delta = QVector2D(e->pos().x() - mousePos.x(), e->pos().y() - mousePos.y());
+    double speed = delta.length();
     cam->yRotShift(delta.x()/(float)this->size().height()*cam->angSpeed.x());
     cam->xRotShift(-delta.y()/(float)this->size().width()*cam->angSpeed.y());
     qDebug() << delta;
     //qDebug() << cur.pos();
 
-    camUpdate();
 
-    if(delta.x() != 0 || delta.y() != 0)
+    if(abs(delta.x()) > 0 || abs(delta.y()) > 0)
     {
         mouseCorrect();
         mousePos.setX(cur.pos().x() - this->pos().x());
@@ -260,7 +261,7 @@ void Widget::initCube(float w)
 
     texture = new QOpenGLTexture(QImage(":/tex.jpg").mirrored());
     texture->setMinificationFilter(QOpenGLTexture::Nearest);
-    texture->setMagnificationFilter(QOpenGLTexture::Linear);
+    texture->setMagnificationFilter(QOpenGLTexture::Nearest);
     texture->setWrapMode(QOpenGLTexture::Repeat);
 }
 
@@ -344,12 +345,13 @@ void Widget::mainLoop()
     {
         cam->pos.setY(cam->pos.y()+cam->speed.y());
     }
-    if(spKeyArr[0])
+    if(spKeyArr[3])
     {
         cam->pos.setY(cam->pos.y()-cam->speed.y());
     }
 
     camUpdate();
+
     //qDebug() << cam->rot;
     frames++; // for FPS counter
 }
