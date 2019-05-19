@@ -4,10 +4,14 @@
 Widget::Widget(QWidget *parent) // конструктор
     : QGLWidget(parent), texture(nullptr), indexBuff(QOpenGLBuffer::IndexBuffer)
 {
-    int xsz = 300, ysz = 300;
+    int xsz = 600, ysz = 600;
     this->resize(xsz,ysz);// задаем размеры окна
     resizeGL(xsz,ysz);
-
+    glViewport(0,0,xsz,ysz);
+    for(int i = 0; i < 256; i++)
+    {
+        keyArr.push_back(0);
+    }
 }
 
 void Widget::initializeGL()
@@ -16,12 +20,13 @@ void Widget::initializeGL()
     glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
     glEnable(GL_CULL_FACE);
 
+    glViewport(0,0,this->size().width(),this->size().height());
 
     initShaders();
     initCube(1.0f);
 
 
-    cam = new CameraClass(QVector3D(0,0,0),QVector3D(0,0,0));
+    cam = new CameraClass(QVector3D(0,0,-10),QVector3D(0,0,0));
     initView(cam->pos,cam->rot);
 
     paintGL(); // filling 'n swaping 1st buffer
@@ -30,22 +35,28 @@ void Widget::initializeGL()
     fpsTick->setInterval(1000);
     connect(this->fpsTick, SIGNAL(timeout()), this, SLOT(printFPS()) );
     fpsTick->start();
+
+    mainTick = new QTimer();
+    mainTick->setInterval(20);
+    connect(this->mainTick, SIGNAL(timeout()), this, SLOT(mainLoop()) );
+    mainTick->start();
 }
 
 void Widget::resizeGL(int nWidth, int nHeight)
 {
     aspectRatio = nWidth / (float)nHeight;
-
+    glViewport(0,0,nWidth,nHeight);
     projection.setToIdentity();
-    projection.perspective(45,aspectRatio,0.1f,10.0f);
-
+//    projection.frustum(0,nWidth,0,nHeight,0,1);
+    projection.perspective(45,aspectRatio,0.1f,100.0f);
+    //paintGL();
 }
 
 void Widget::paintGL() // рисование
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очистка экрана
-    drawCube(QVector3D(0,0,-5));
-    drawCube(QVector3D(1,0,-5));
+    drawCube(QVector3D(0,0,0));
+    drawCube(QVector3D(1,0,0));
     swapBuffers();
 }
 
@@ -57,44 +68,57 @@ void Widget::camUpdate()
 
 void Widget::mousePressEvent(QMouseEvent *e)
 {
+    mouseStick = 1;
+    mousePos.setX(e->pos().x());
+    mousePos.setY(e->pos().y());
+    mouseCorrect();
+}
 
+void Widget::mouseReleaseEvent(QMouseEvent *e)
+{
+    mouseStick = 0;
 }
 
 void Widget::mouseMoveEvent(QMouseEvent *e)
 {
-    QVector2D delta = QVector2D(e->pos().x() - mousePos.x(),e->pos().y() - mousePos.y());
-    cam->yRotShift(delta.x());
-    cam->xRotShift(-delta.y());
+    QVector2D delta = QVector2D(e->pos().x() - mousePos.x(), e->pos().y() - mousePos.y());
+    cam->yRotShift(delta.x()/(float)this->size().height()*cam->angSpeed.x());
+    cam->xRotShift(-delta.y()/(float)this->size().width()*cam->angSpeed.y());
     qDebug() << delta;
-    mousePos.setX(e->pos().x());
-    mousePos.setY(e->pos().y());
+    //qDebug() << cur.pos();
+
     camUpdate();
+
+    if(delta.x() != 0 || delta.y() != 0)
+    {
+        mouseCorrect();
+        mousePos.setX(cur.pos().x() - this->pos().x());
+        mousePos.setY(cur.pos().y() - this->pos().y()-36);
+
+    }
+}
+
+void Widget::mouseCorrect()
+{
+    if(mouseStick)
+    {
+        if(cur.pos().x() - this->pos().x() > this->size().width()) cur.setPos(this->pos().x(),cur.pos().y());
+
+        if(cur.pos().x() - this->pos().x() < 0) cur.setPos(this->pos().x() + this->size().width(),cur.pos().y());
+
+        if(cur.pos().y() - this->pos().y() > this->size().height()) cur.setPos(cur.pos().x(),this->pos().y());
+
+        if(cur.pos().y() - this->pos().y() < 0) cur.setPos(cur.pos().x(),this->pos().y() + this->size().height());
+    }
 }
 
 void Widget::keyPressEvent(QKeyEvent *e)
 {
- if(e->key() == Qt::Key::Key_A)
- {
-     cam->xShift(cam->speed.x());
- }
- if(e->key() == Qt::Key::Key_D)
- {
-     cam->xShift(-cam->speed.x());
- }
-
- if(e->key() == Qt::Key::Key_W)
- {
-     cam->zShift(cam->speed.z());
- }
- if(e->key() == Qt::Key::Key_S)
- {
-     cam->zShift(-cam->speed.z());
- }
- while(angle < 0) angle += 360;
- while(angle >= 360) angle -= 360;
- qDebug() << e;
- qDebug() << angle;
- camUpdate();
+    keyArr[e->key()] = 1;
+}
+void Widget::keyReleaseEvent(QKeyEvent *e)
+{
+    keyArr[e->key()] = 0;
 }
 
 void Widget::printFPS()
@@ -180,10 +204,13 @@ void Widget::initCube(float w)
 void Widget::initView(QVector3D pos, QVector3D rot)
 {
     viewMatrix.setToIdentity();
+//    viewMatrix.translate(pos);
     viewMatrix.rotate(rot.x(), 1, 0, 0);
     viewMatrix.rotate(rot.y(), 0, 1, 0);
     viewMatrix.rotate(rot.z(), 0, 0, 1);
-    viewMatrix.translate(pos);
+    QVector3D newPos(pos.x(), pos.y(), pos.z());
+    viewMatrix.translate(newPos);
+
 }
 
 void Widget::drawCube(QVector3D pos)
@@ -218,5 +245,25 @@ void Widget::drawCube(QVector3D pos)
 
 void Widget::mainLoop()
 {
+    if(keyArr[Qt::Key::Key_A])
+    {
+        cam->pos += cam->speed.x() * cam->rot/360;
+    }
+    if(keyArr[Qt::Key::Key_D])
+    {
+        cam->pos -= cam->speed.x() * cam->rot/360;
+    }
+
+    if(keyArr[Qt::Key::Key_W])
+    {
+        cam->zShift(cam->speed.z());
+    }
+    if(keyArr[Qt::Key::Key_S])
+    {
+        cam->zShift(-cam->speed.z());
+    }
+
+    camUpdate();
+    qDebug() << "a";
     frames++; // for FPS counter
 }

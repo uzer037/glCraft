@@ -10,6 +10,8 @@
 #include <QTimer>
 #include <QDebug>
 #include <QKeyEvent>
+#include <QCursor>
+#include <cmath>
 
 struct vertData
 {
@@ -59,6 +61,7 @@ public:
             this->pos = pos;
             this->rot = rot;
             speed = {0.1,0.1,0.1};
+            angSpeed = {100,100,100};
         }
 
         void xShift(double x)
@@ -96,6 +99,7 @@ public:
         QVector3D pos;
         QVector3D rot;
         QVector3D speed;
+        QVector3D angSpeed;
     };
     CameraClass* cam;
 
@@ -105,10 +109,20 @@ public:
     //       input       //
     // // // // // // // //
 
+    QCursor cur;
+
     void mousePressEvent(QMouseEvent *e);
+    void mouseReleaseEvent(QMouseEvent *e);
     void mouseMoveEvent(QMouseEvent *e);
     void keyPressEvent(QKeyEvent *e);
+    void keyReleaseEvent(QKeyEvent *e);
+
+    QVector <bool> keyArr;
+
     QVector2D mousePos;
+
+    bool mouseStick = 0;
+    void mouseCorrect();
 
     // // // // // // // // // // //
     //       OpenGL Main Func     //
@@ -150,6 +164,7 @@ private:
     // // // // // // // // // // // //
     //        CUSTOM FUNCTIONS       //
     // // // // // // // // // // // //
+public slots:
     void mainLoop();
 };
 
