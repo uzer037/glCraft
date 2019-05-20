@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>tex.jpg</file>
+        <file>texture.png</file>
     </qresource>
 </RCC>

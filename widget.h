@@ -25,6 +25,60 @@ struct vertData
     QVector3D normal;
 };
 
+struct collisionBox
+{
+    QVector3D apos; // front top left
+    QVector3D bpos; // back bot right
+    //box from a.pos --> b.pos
+};
+
+class block
+{
+    public:
+
+    collisionBox cbox;
+    int id;
+    double size = 1.0;
+    QVector3D pos;
+    QVector3D rot;
+
+
+
+    block(QVector3D pos, int id)
+    {
+        this->pos = pos;
+        this->id = id;
+
+    }
+
+    void calcCbox()
+    {
+        float sz2 = size/2;
+        cbox.apos = QVector3D(pos.x() - sz2, pos.y() - sz2, pos.z() - sz2);
+        cbox.bpos = QVector3D(pos.x() + sz2, pos.y() + sz2, pos.z() + sz2);
+    }
+
+    int getId()
+    {
+        return id;
+    }
+
+    collisionBox getCbox()
+    {
+        return cbox;
+    }
+
+    QVector3D getPos()
+    {
+        return pos;
+    }
+
+    void setPos(QVector3D pos)
+    {
+        this->pos = pos;
+    }
+};
+
 // // // // // // // // //
 //       MAIN CLASS     //
 // // // // // // // // //
@@ -121,6 +175,7 @@ public:
     QVector <bool> spKeyArr;
 
     QVector2D mousePos;
+    bool mouseYInverse = 1;
 
     bool mouseStick = 0;
     void mouseCorrect();
@@ -144,29 +199,47 @@ private:
     QMatrix4x4 viewMatrix;
 
     QOpenGLShaderProgram prog;
-    QOpenGLTexture *texture;
+    QVector <QOpenGLTexture *> texture;
+    QImage *textureSheet;
     QOpenGLBuffer arrBuff;
     QOpenGLBuffer indexBuff;
 
-    // // // // // // // // // // //
-    //       OBJ/SHADERS INIT     //
-    // // // // // // // // // // //
+    void loadTextures();
+
+    // // // // // // // // // //
+    //       SHADERS INIT      //
+    // // // // // // // // // //
 
     void initShaders();
     void initCube(float w);
     void initView(QVector3D pos,QVector3D rot);
 
+    // // // // // // // // // // //
+    //          OBJ INIT          //
+    // // // // // // // // // // //
+
+    void initScene();
+    QVector <block *> blocks;
+
     // // // // // // // // //
     //       OBJ DRAW       //
     // // // // // // // // //
 
-    void drawCube(QVector3D pos);
+    void drawCube(block *b);
 
-    // // // // // // // // // // // //
-    //        CUSTOM FUNCTIONS       //
-    // // // // // // // // // // // //
+
 public slots:
     void mainLoop();
+public:
+
 };
+
+// // // // // // // // // // // //
+//        CUSTOM FUNCTIONS       //
+//                               //
+//        NON  MAIN CLASS        //
+// // // // // // // // // // // //
+
+ bool collideCheck(collisionBox a, collisionBox b);
 
 #endif // WIDGET_H
