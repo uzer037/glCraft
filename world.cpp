@@ -66,3 +66,10 @@ block* world::addBlock(QVector3D pos, int id)
     }
     return bl;
 }
+
+void world::rmBlockAt(QVector3D pos)
+{
+    block * bl = blockAt(pos);
+    if(bl != nullptr)
+        bl->id = 0;
+}

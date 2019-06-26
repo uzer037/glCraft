@@ -443,6 +443,15 @@ void Widget::mainLoop()
         qDebug() << "pos: " << cam->pos << " rot: " << cam->rot;
     }
 
+    if(keyArr[Qt::Key::Key_C])
+    {
+        //w.rmBlockAt({0,0,0});
+        block * bl = nullptr;
+        bl = raycastBlock(cam->pos,cam->rot);
+        //if(bl != nullptr)
+            //qDebug() << bl->pos;
+    }
+
     if(spKeyArr[3])
     {
         cam->pos.setY(cam->pos.y()-cam->speed.y());
@@ -480,3 +489,24 @@ bool isOverlap(collisionBox a, collisionBox b)
 //    qDebug() << "No overlap: " << noOverlap;
 //    return noOverlap;
 //}
+
+block *Widget::raycastBlock(QVector3D pos, QVector3D rot)
+{
+    block * bl = nullptr;
+    for(int i = 0; i < 10; i++)
+    {
+        QVector3D npos = pos;
+        npos.setX(roundf(pos.x() + i * sin(rot.x()/180*M_PI)));
+        npos.setY(roundf(pos.y() + i * sin(rot.y()/180*M_PI)));
+        npos.setZ(roundf(pos.z() + i * sin(rot.z()/180*M_PI)));
+        bl = nullptr;
+        bl = w.blockAt(npos);
+        if(bl != nullptr && bl->id > 0 && bl->id < 256)
+        {
+            qDebug() << bl->id << " " << bl->pos;
+            w.rmBlockAt(bl->pos);
+            break;
+        }
+    }
+    return bl;
+}

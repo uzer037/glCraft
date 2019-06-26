@@ -171,6 +171,8 @@ public:
     void keyPressEvent(QKeyEvent *e);
     void keyReleaseEvent(QKeyEvent *e);
 
+    block *raycastBlock(QVector3D pos, QVector3D rot);
+
     QVector <bool> keyArr;
     QVector <bool> spKeyArr;
 
@@ -247,11 +249,7 @@ public:
 //        NON  MAIN CLASS        //
 // // // // // // // // // // // //
 
- bool collideCheck(collisionBox a, collisionBox b);
+bool collideCheck(collisionBox a, collisionBox b);
 
- class player
- {
-
- };
 
 #endif // WIDGET_H

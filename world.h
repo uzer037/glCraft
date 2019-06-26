@@ -17,6 +17,8 @@ public:
 
     chunk* addChunk(int x, int y);
     block* addBlock(QVector3D pos, int id);
+
+    void rmBlockAt(QVector3D pos);
 };
 
 #endif // WORLD_H
