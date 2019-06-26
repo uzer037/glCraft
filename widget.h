@@ -1,6 +1,11 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
+#ifndef OUTERCLASS
+#define OUTERCLASS(className, memberName) \
+    reinterpret_cast<className*>(reinterpret_cast<unsigned char*>(this) - offsetof(className, memberName))
+#endif
+
 #include <QGLWidget>
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
@@ -11,7 +16,17 @@
 #include <QDebug>
 #include <QKeyEvent>
 #include <QCursor>
+#include <QDateTime>
 #include <cmath>
+
+#include "block.h"
+#include "chunk.h"
+#include "world.h"
+
+static int randomBetween(int low, int high)
+{
+    return (qrand() % ((high + 1) - low) + low);
+}
 
 struct vertData
 {
@@ -19,6 +34,7 @@ struct vertData
     vertData(QVector3D p, QVector2D t, QVector3D n) : position(p), textCoord(t), normal(n)
     {
     }
+
 
     QVector3D position;
     QVector2D textCoord;
@@ -32,52 +48,7 @@ struct collisionBox
     //box from a.pos --> b.pos
 };
 
-class block
-{
-    public:
-
-    collisionBox cbox;
-    int id;
-    double size = 1.0;
-    QVector3D pos;
-    QVector3D rot;
-
-
-
-    block(QVector3D pos, int id)
-    {
-        this->pos = pos;
-        this->id = id;
-
-    }
-
-    void calcCbox()
-    {
-        float sz2 = size/2;
-        cbox.apos = QVector3D(pos.x() - sz2, pos.y() - sz2, pos.z() - sz2);
-        cbox.bpos = QVector3D(pos.x() + sz2, pos.y() + sz2, pos.z() + sz2);
-    }
-
-    int getId()
-    {
-        return id;
-    }
-
-    collisionBox getCbox()
-    {
-        return cbox;
-    }
-
-    QVector3D getPos()
-    {
-        return pos;
-    }
-
-    void setPos(QVector3D pos)
-    {
-        this->pos = pos;
-    }
-};
+bool isOverlap (collisionBox a, collisionBox b);
 
 // // // // // // // // //
 //       MAIN CLASS     //
@@ -91,9 +62,6 @@ public:
 
     Widget(QWidget *parent = nullptr);
 
-
-
-
     QTimer* mainTick;
     QTimer* fpsTick;
     int frames = 0;
@@ -102,6 +70,9 @@ public:
     bool fps = 0;
     float aspectRatio = 1;
 
+
+//    bool checkOverlap(collisionBox obj);
+
     // // // // // // // //
     //       camera      //
     // // // // // // // //
@@ -109,33 +80,66 @@ public:
     class CameraClass
     {
         public:
+        Widget* widg;
+        QVector3D pos;
+        QVector3D rot;
+        QVector3D speed;
+        QVector3D angSpeed;
+        collisionBox cbox;
+        QVector3D cboxSz;
 
-        CameraClass(QVector3D pos, QVector3D rot)
+        CameraClass(Widget *widg, QVector3D pos, QVector3D rot)
         {
+
+            cboxSz = QVector3D(1,1,1);
+            cbox.apos = pos + cboxSz;
+            cbox.bpos = pos - cboxSz;
             this->pos = pos;
             this->rot = rot;
-            speed = {0.1,0.1,0.1};
+            speed = {0.5,0.5,0.5};
             angSpeed = {100,100,100};
+        }
+
+        void moved()
+        {
+            cbox.apos = pos + cboxSz;
+            cbox.bpos = pos - cboxSz;
         }
 
         void xShift(double x)
         {
-            pos.setX(pos.x() + x);
+//            if(widg->checkOverlap(cbox))
+//            {
+                pos.setX(pos.x() + x);
+                moved();
+//            }
         }
         void yShift(double y)
         {
-            pos.setY(pos.y() + y);
+//            if(widg->checkOverlap(cbox))
+//            {
+                    pos.setY(pos.y() + y);
+                    moved();
+//            }
         }
         void zShift(double z)
         {
-            pos.setZ(pos.z() + z);
+//            if(widg->checkOverlap(cbox))
+//            {
+                pos.setZ(pos.z() + z);
+                moved();
+//            }
         }
 
         void xRotShift(double x)
         {
-            if(rot.x() + x >= 360) x -= 360;
-            if(rot.x() + x < 0) x += 360;
-            rot.setX(rot.x() + x);
+            if(rot.x() + x < -90) rot.setX(rot.x());
+            else
+            {
+                if(rot.x() + x > 90) rot.setX(rot.x());
+                else
+                    rot.setX(rot.x() + x);
+            }
         }
         void yRotShift(double y)
         {
@@ -145,15 +149,11 @@ public:
         }
         void zRotShift(double z)
         {
-            if(rot.z() + z >= 360) z -= 360;
+            if(rot.z() + z >= 180) z -= 360;
             if(rot.z() + z < 0) z += 360;
             rot.setZ(rot.z() + z);
         }
 
-        QVector3D pos;
-        QVector3D rot;
-        QVector3D speed;
-        QVector3D angSpeed;
     };
     CameraClass* cam;
 
@@ -206,6 +206,7 @@ private:
 
     void loadTextures();
 
+
     // // // // // // // // // //
     //       SHADERS INIT      //
     // // // // // // // // // //
@@ -218,6 +219,12 @@ private:
     //          OBJ INIT          //
     // // // // // // // // // // //
 
+    world w;
+
+    void pillar(QVector3D pos, int h, int id);
+    void genPillar(QVector3D pos, int h);
+    void genChunk(QVector2D pos);
+
     void initScene();
     QVector <block *> blocks;
 
@@ -225,7 +232,7 @@ private:
     //       OBJ DRAW       //
     // // // // // // // // //
 
-    void drawCube(block *b);
+    void drawCube(block* bl);
 
 
 public slots:
@@ -241,5 +248,10 @@ public:
 // // // // // // // // // // // //
 
  bool collideCheck(collisionBox a, collisionBox b);
+
+ class player
+ {
+
+ };
 
 #endif // WIDGET_H

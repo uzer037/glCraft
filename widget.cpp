@@ -18,11 +18,14 @@ Widget::Widget(QWidget *parent) // конструктор
     }
 }
 
+
 void Widget::initializeGL()
 {
     glClearColor(0.3f, 0.7f, 1.0f, 1.0f); // Set background color to black and opaque
     glEnable(GL_DEPTH_TEST);   // Enable depth testing for z-culling
     glEnable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glViewport(0,0,this->size().width(),this->size().height());
 
@@ -31,7 +34,7 @@ void Widget::initializeGL()
 
     initScene();
 
-    cam = new CameraClass(QVector3D(0,0,-10),QVector3D(0,0,0));
+    cam = new CameraClass(this, QVector3D(23,13.5,-5),QVector3D(12,90,0));
     initView(cam->pos,cam->rot);
 
     paintGL(); // filling 'n swaping 1st buffer
@@ -45,6 +48,7 @@ void Widget::initializeGL()
     mainTick->setInterval(10);
     connect(this->mainTick, SIGNAL(timeout()), this, SLOT(mainLoop()) );
     mainTick->start();
+
 }
 
 void Widget::resizeGL(int nWidth, int nHeight)
@@ -60,11 +64,16 @@ void Widget::resizeGL(int nWidth, int nHeight)
 void Widget::paintGL() // рисование
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // очистка экрана
-//    drawCube(QVector3D(0,0,0));
-    int n = 15;
-    for(auto i : blocks)
+
+    for(int i = 0; i < w.chunks.size(); i++)
     {
-        drawCube(i);
+        for(int j = 0; j < w.chunks[i].blocks.size(); j++)
+        {
+            if(w.chunks[i].blocks[j].id != 0)
+            {
+                    drawCube(&w.chunks[i].blocks[j]);
+            }
+        }
     }
     glFinish();
     swapBuffers();
@@ -97,8 +106,6 @@ void Widget::mouseMoveEvent(QMouseEvent *e)
     double speed = delta.length();
     cam->yRotShift(delta.x()/(float)this->size().height()*cam->angSpeed.x());
     cam->xRotShift(-delta.y()/(float)this->size().width()*cam->angSpeed.y() * (1 - 2 * mouseYInverse));
-    qDebug() << delta;
-    //qDebug() << cur.pos();
 
 
     if(abs(delta.x()) > 0 || abs(delta.y()) > 0)
@@ -210,7 +217,7 @@ void Widget::loadTextures()
     {
         for(int j = 0; j < 16; j++) // y
         {
-            textureTmp = textureSheet->copy(i*16,j*16,16,16);
+            textureTmp = textureSheet->copy(j*w,i*h,w,h);
 
             texture.push_back(new QOpenGLTexture(textureTmp.mirrored()));
 
@@ -235,32 +242,32 @@ void Widget::initCube(float w)
 {
     float wDiv2 = w/2.0f;
     QVector <vertData> vert;
-    vert.append(vertData(QVector3D(-wDiv2,wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(0.0, 0.0, 1.0))); //
+    vert.append(vertData(QVector3D(-wDiv2,wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(0.0, 0.0, 1.0))); // front
     vert.append(vertData(QVector3D(-wDiv2,-wDiv2,wDiv2), QVector2D(0.0,0.0), QVector3D(0.0, 0.0, 1.0)));
     vert.append(vertData(QVector3D(wDiv2,wDiv2,wDiv2), QVector2D(1.0,1.0), QVector3D(0.0, 0.0, 1.0)));
     vert.append(vertData(QVector3D(wDiv2,-wDiv2,wDiv2), QVector2D(1.0,0.0), QVector3D(0.0, 0.0, 1.0)));
 
-    vert.append(vertData(QVector3D(wDiv2,wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(1.0, 0.0, 0.0))); //
+    vert.append(vertData(QVector3D(wDiv2,wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(1.0, 0.0, 0.0))); // right
     vert.append(vertData(QVector3D(wDiv2,-wDiv2,wDiv2), QVector2D(0.0,0.0), QVector3D(1.0, 0.0, 0.0)));
     vert.append(vertData(QVector3D(wDiv2,wDiv2,-wDiv2), QVector2D(1.0,1.0), QVector3D(1.0, 0.0, 0.0)));
     vert.append(vertData(QVector3D(wDiv2,-wDiv2,-wDiv2), QVector2D(1.0,0.0), QVector3D(1.0, 0.0, 0.0)));
 
-    vert.append(vertData(QVector3D(wDiv2,wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(0.0, 1.0, 0.0))); //
+    vert.append(vertData(QVector3D(wDiv2,wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(0.0, 1.0, 0.0))); // top
     vert.append(vertData(QVector3D(wDiv2,wDiv2,-wDiv2), QVector2D(0.0,0.0), QVector3D(0.0, 1.0, 0.0)));
     vert.append(vertData(QVector3D(-wDiv2,wDiv2,wDiv2), QVector2D(1.0,1.0), QVector3D(0.0, 1.0, 0.0)));
     vert.append(vertData(QVector3D(-wDiv2,wDiv2,-wDiv2), QVector2D(1.0,0.0), QVector3D(0.0, 1.0, 0.0)));
 
-    vert.append(vertData(QVector3D(wDiv2,wDiv2,-wDiv2), QVector2D(0.0,1.0), QVector3D(0.0, 0.0, -1.0))); //
+    vert.append(vertData(QVector3D(wDiv2,wDiv2,-wDiv2), QVector2D(0.0,1.0), QVector3D(0.0, 0.0, -1.0))); // back
     vert.append(vertData(QVector3D(wDiv2,-wDiv2,-wDiv2), QVector2D(0.0,0.0), QVector3D(0.0, 0.0, -1.0)));
     vert.append(vertData(QVector3D(-wDiv2,wDiv2,-wDiv2), QVector2D(1.0,1.0), QVector3D(0.0, 0.0, -1.0)));
     vert.append(vertData(QVector3D(-wDiv2,-wDiv2,-wDiv2), QVector2D(1.0,0.0), QVector3D(0.0, 0.0, -1.0)));
 
-    vert.append(vertData(QVector3D(-wDiv2,wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(-1.0, 0.0, 0.0))); //
-    vert.append(vertData(QVector3D(-wDiv2,wDiv2,-wDiv2), QVector2D(0.0,0.0), QVector3D(-1.0, 0.0, 0.0)));
-    vert.append(vertData(QVector3D(-wDiv2,-wDiv2,wDiv2), QVector2D(1.0,1.0), QVector3D(-1.0, 0.0, 0.0)));
-    vert.append(vertData(QVector3D(-wDiv2,-wDiv2,-wDiv2), QVector2D(1.0,0.0), QVector3D(-1.0, 0.0, 0.0)));
+    vert.append(vertData(QVector3D(-wDiv2,wDiv2,wDiv2), QVector2D(1.0,1.0), QVector3D(-1.0, 0.0, 0.0))); // left
+    vert.append(vertData(QVector3D(-wDiv2,wDiv2,-wDiv2), QVector2D(0.0,1.0), QVector3D(-1.0, 0.0, 0.0)));
+    vert.append(vertData(QVector3D(-wDiv2,-wDiv2,wDiv2), QVector2D(1.0,0.0), QVector3D(-1.0, 0.0, 0.0)));
+    vert.append(vertData(QVector3D(-wDiv2,-wDiv2,-wDiv2), QVector2D(0.0,0.0), QVector3D(-1.0, 0.0, 0.0)));
 
-    vert.append(vertData(QVector3D(-wDiv2,-wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(0.0, -1.0, 0.0))); //
+    vert.append(vertData(QVector3D(-wDiv2,-wDiv2,wDiv2), QVector2D(0.0,1.0), QVector3D(0.0, -1.0, 0.0))); // bot
     vert.append(vertData(QVector3D(-wDiv2,-wDiv2,-wDiv2), QVector2D(0.0,0.0), QVector3D(0.0, -1.0, 0.0)));
     vert.append(vertData(QVector3D(wDiv2,-wDiv2,wDiv2), QVector2D(1.0,1.0), QVector3D(0.0, -1.0, 0.0)));
     vert.append(vertData(QVector3D(wDiv2,-wDiv2,-wDiv2), QVector2D(1.0,0.0), QVector3D(0.0, -1.0, 0.0)));
@@ -302,33 +309,70 @@ void Widget::initView(QVector3D pos, QVector3D rot)
 
 }
 
-void Widget::initScene()
+void Widget::pillar(QVector3D pos, int h, int id)
 {
-    for(int i = 0; i < 16; i++)
+    for(int i = 0; i < h; i++)
     {
-        for(int j = 0; j < 16; j++)
-        {
-            blocks.push_back(new block(QVector3D(i,-2,j), i*16+j) );
-        }
+        w.addBlock(QVector3D(pos.x(),pos.y() + i,pos.z()), id);
     }
 }
 
-void Widget::drawCube(block* b)
+void Widget::genPillar(QVector3D pos, int h)
 {
+    QVector3D p = pos;
+    //18 -b
+    //2 -st
+    //3 -d
+    //1 -gr
+    int n;
 
+
+
+    n = randomBetween(2,4);
+    pillar(QVector3D(p.x(), pos.y()+h-n, p.z()),n,3);
+
+    pillar(QVector3D(p.x(), pos.y()-n, p.z()),h,2);
+
+    w.addBlock(QVector3D(p.x(), p.y()+h, p.z()), 1);//->color = QVector4D(0,1.0*randomBetween(80,100)/100,0,1);//grass
+
+    n = randomBetween(1,3); //bedrock
+    pillar(p, n, 18);
+}
+
+void Widget::initScene()
+{
+        for(int i = 0; i < 16; i++)
+        {
+            for(int j = 0; j < 16; j++)
+            {
+                genPillar(QVector3D(i,0,j), i+j);
+            }
+        }
+    for(auto i : w.chunks)
+    {
+        i.update();
+    }
+//    qDebug() << w.blockAt({1,255,15})->id;
+//    genPillar(QVector3D(0,0,0),16);
+}
+
+void Widget::drawCube(block *bl)
+{    
     QMatrix4x4 matrixModel;
     matrixModel.setToIdentity();
-    matrixModel.translate(b->pos);
+    matrixModel.translate(bl->pos);
 
-    texture[b->id]->bind(0);
+    if(bl->id != 0)
+        texture[bl->id-1]->bind(0);
 
     prog.bind();
     prog.setUniformValue("u_ProjectionMatrix",  projection);
     prog.setUniformValue("u_ViewMatrix",  viewMatrix);
     prog.setUniformValue("u_ModelMatrix",  matrixModel);
     prog.setUniformValue("v_texCoord0", 0);
-    prog.setUniformValue("u_lightSourcePos", QVector4D(0.0,0.0,0.0,1.0));
-    prog.setUniformValue("u_lightPower", 5);
+    prog.setUniformValue("u_lightSourcePos", QVector4D(1.0,1.0,1.0,1.0));
+    prog.setUniformValue("u_addColor", bl->color);
+    prog.setUniformValue("u_lightPower", 1);
 
     arrBuff.bind();
 
@@ -393,6 +437,12 @@ void Widget::mainLoop()
     {
         cam->pos.setY(cam->pos.y()+cam->speed.y());
     }
+
+    if(keyArr[Qt::Key::Key_I])
+    {
+        qDebug() << "pos: " << cam->pos << " rot: " << cam->rot;
+    }
+
     if(spKeyArr[3])
     {
         cam->pos.setY(cam->pos.y()-cam->speed.y());
@@ -404,7 +454,29 @@ void Widget::mainLoop()
     frames++; // for FPS counter
 }
 
-bool collideCheck(collisionBox a, collisionBox b)
+bool isOverlap(collisionBox a, collisionBox b)
 {
-
+    bool lt = a.apos.x() < b.bpos.x();
+    bool rt = a.bpos.x() > b.apos.x();
+    bool bk = a.apos.z() < b.bpos.z();
+    bool ft = a.bpos.z() > b.apos.z();
+    bool tp = a.apos.y() < b.bpos.y();
+    bool bm = a.bpos.y() > b.apos.y();
+    qDebug() << "overlap: " << (lt && rt && bk && ft && tp && bm);
+    return (lt && rt && bk && ft && tp && bm);
 }
+
+//bool Widget::checkOverlap(collisionBox obj)
+//{
+//    bool noOverlap = 1;
+//    for(auto i : blocks)
+//    {
+//        if(isOverlap(obj, i->cbox))
+//        {
+//            noOverlap = 0;
+//            break;
+//        }
+//    }
+//    qDebug() << "No overlap: " << noOverlap;
+//    return noOverlap;
+//}

@@ -25,11 +25,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+        block.cpp \
+        chunk.cpp \
         main.cpp \
-        widget.cpp
+        widget.cpp \
+        world.cpp
 
 HEADERS += \
-        widget.h
+        block.h \
+        chunk.h \
+        widget.h \
+        world.h
 
 FORMS += \
         widget.ui
